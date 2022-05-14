@@ -105,30 +105,11 @@ def check_tokens():
 def main():
     """Основная логика работы бота."""
     if not check_tokens():
-        if not PRACTICUM_TOKEN or PRACTICUM_TOKEN is None:
-            logger.critical(
-                'Отсутствует обязательная переменная окружения:'
-                '"PRACTICUM_TOKEN".Программа принудительно остановлена.'
-            )
-            raise SystemExit
-        elif not TELEGRAM_TOKEN or TELEGRAM_TOKEN is None:
-            logger.critical(
-                'Отсутствует обязательная переменная окружения:'
-                '"TELEGRAM_TOKEN".Программа принудительно остановлена.'
-            )
-            raise SystemExit
-        elif not TELEGRAM_CHAT_ID or TELEGRAM_CHAT_ID is None:
-            logger.critical(
-                'Отсутствует обязательная переменная окружения:'
-                '"TELEGRAM_CHAT_ID".Программа принудительно остановлена.'
-            )
-            raise SystemExit
-        else:
-            logger.critical(
-                'Отсутствует обязательная переменная окружения.'
-                'Программа принудительно остановлена.'
-            )
-            raise SystemExit
+        logger.critical(
+            'Отсутствует обязательная переменная окружения.'
+            'Программа принудительно остановлена.'
+        )
+        raise SystemExit
 
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     current_timestamp = int(time.time())
@@ -141,30 +122,44 @@ def main():
             else:
                 status = parse_status(homework[0])
                 message = status
-            send_message(bot, message)
             current_timestamp = response['current_date']
-            time.sleep(RETRY_TIME)
         except ReferenceError as error:
             message = f'Сбой в работе программы: {error}'
-            send_message(bot, message)
             logger.error(error)
-            time.sleep(RETRY_TIME)
         except KeyError as error:
             message = f'Сбой в работе программы: {error}'
-            send_message(bot, message)
             logger.error(error)
-            time.sleep(RETRY_TIME)
         except TypeError as error:
             message = f'Сбой в работе программы: {error}'
-            send_message(bot, message)
             logger.error(error)
-            time.sleep(RETRY_TIME)
-        except Exception as error:
-            message = f'Сбой в работе программы: {error}'
+        else:
             send_message(bot, message)
-            logger.error(error)
             time.sleep(RETRY_TIME)
 
 
 if __name__ == '__main__':
     main()
+
+# Убрал потому что выходила ошибка:
+# C901 'main' is too complex (12)
+'''
+if not PRACTICUM_TOKEN or PRACTICUM_TOKEN is None:
+    logger.critical(
+        'Отсутствует обязательная переменная окружения:'
+        '"PRACTICUM_TOKEN".Программа принудительно остановлена.'
+    )
+    raise SystemExit
+elif not TELEGRAM_TOKEN or TELEGRAM_TOKEN is None:
+    logger.critical(
+        'Отсутствует обязательная переменная окружения:'
+        '"TELEGRAM_TOKEN".Программа принудительно остановлена.'
+    )
+    raise SystemExit
+elif not TELEGRAM_CHAT_ID or TELEGRAM_CHAT_ID is None:
+    logger.critical(
+        'Отсутствует обязательная переменная окружения:'
+        '"TELEGRAM_CHAT_ID".Программа принудительно остановлена.'
+    )
+    raise SystemExit
+else:
+'''
