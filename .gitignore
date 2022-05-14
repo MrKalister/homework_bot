@@ -150,3 +150,5 @@ static/
 posts/static/
 media/
 
+# Тестовый файл
+.test_bot.py
