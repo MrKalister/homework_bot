@@ -4,8 +4,10 @@ import time
 import sys
 
 import requests
+import settings as s
 import telegram
 from dotenv import load_dotenv
+from http import HTTPStatus
 
 load_dotenv()
 
@@ -13,14 +15,7 @@ load_dotenv()
 PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
-RETRY_TIME = 600
-ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
-HOMEWORK_STATUSES = {
-    'approved': 'Работа проверена: ревьюеру всё понравилось. Ура!',
-    'reviewing': 'Работа взята на проверку ревьюером.',
-    'rejected': 'Работа проверена: у ревьюера есть замечания.'
-}
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -56,16 +51,19 @@ def cache_msg(func):
 @cache_msg
 def send_message(bot, message):
     """Отправляет сообщение в Telegram чат."""
-    bot.send_message(TELEGRAM_CHAT_ID, message)
-    logger.info(f'Бот отправил сообщение "{message}"')
+    try:
+        bot.send_message(TELEGRAM_CHAT_ID, message)
+        logger.info(f'Бот отправил сообщение "{message}"')
+    except telegram.error.TelegramError as error:
+        logger.error(f'Бот не отправил сообщение "{message}": {error}')
 
 
 def get_api_answer(current_timestamp):
     """Делает запрос эндпоинту API-сервиса."""
     timestamp = current_timestamp or int(time.time())
     params = {'from_date': timestamp}
-    response = requests.get(ENDPOINT, headers=HEADERS, params=params)
-    if response.status_code != 200:
+    response = requests.get(s.ENDPOINT, headers=HEADERS, params=params)
+    if response.status_code != HTTPStatus.OK:
         raise ReferenceError('Статус ответа API не OK')
     return response.json()
 
@@ -73,8 +71,10 @@ def get_api_answer(current_timestamp):
 def check_response(response):
     """Проверяет ответ API на корректность."""
     key = 'homeworks'
-    if isinstance(response[key], dict):
-        raise TypeError('В ответе API не словарь')
+    if not isinstance(response, dict):
+        raise TypeError('В ответе API нет словаря')
+    if not isinstance(response[key], list):
+        raise TypeError(f'По ключу "{key}" не получен список')
     if key not in response:
         raise KeyError(f'Ключа "{key}" в словаре нет')
     return response[key]
@@ -88,18 +88,15 @@ def parse_status(homework):
     if 'status' not in homework:
         raise KeyError('Ключ status отсутствует в homework')
     homework_status = homework['status']
-    if homework_status not in HOMEWORK_STATUSES:
+    if homework_status not in s.HOMEWORK_STATUSES:
         raise KeyError(f'Статус {homework_status} неизвестен')
-    verdict = HOMEWORK_STATUSES[homework_status]
+    verdict = s.HOMEWORK_STATUSES[homework_status]
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
 
 def check_tokens():
     """Проверяет доступность переменных окружения."""
-    if not all([PRACTICUM_TOKEN and TELEGRAM_TOKEN and TELEGRAM_CHAT_ID]):
-        return False
-    else:
-        return True
+    return all([PRACTICUM_TOKEN and TELEGRAM_TOKEN and TELEGRAM_CHAT_ID])
 
 
 def main():
@@ -120,8 +117,7 @@ def main():
             if not homework:
                 message = "На данный момент обновлений нет"
             else:
-                status = parse_status(homework[0])
-                message = status
+                message = parse_status(homework[0])
             current_timestamp = response['current_date']
         except ReferenceError as error:
             message = f'Сбой в работе программы: {error}'
@@ -132,34 +128,10 @@ def main():
         except TypeError as error:
             message = f'Сбой в работе программы: {error}'
             logger.error(error)
-        else:
+        finally:
             send_message(bot, message)
-            time.sleep(RETRY_TIME)
+            time.sleep(s.RETRY_TIME)
 
 
 if __name__ == '__main__':
     main()
-
-# Убрал потому что выходила ошибка:
-# C901 'main' is too complex (12)
-'''
-if not PRACTICUM_TOKEN or PRACTICUM_TOKEN is None:
-    logger.critical(
-        'Отсутствует обязательная переменная окружения:'
-        '"PRACTICUM_TOKEN".Программа принудительно остановлена.'
-    )
-    raise SystemExit
-elif not TELEGRAM_TOKEN or TELEGRAM_TOKEN is None:
-    logger.critical(
-        'Отсутствует обязательная переменная окружения:'
-        '"TELEGRAM_TOKEN".Программа принудительно остановлена.'
-    )
-    raise SystemExit
-elif not TELEGRAM_CHAT_ID or TELEGRAM_CHAT_ID is None:
-    logger.critical(
-        'Отсутствует обязательная переменная окружения:'
-        '"TELEGRAM_CHAT_ID".Программа принудительно остановлена.'
-    )
-    raise SystemExit
-else:
-'''
