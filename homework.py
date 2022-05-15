@@ -70,14 +70,13 @@ def get_api_answer(current_timestamp):
 
 def check_response(response):
     """Проверяет ответ API на корректность."""
-    key = 'homeworks'
     if not isinstance(response, dict):
         raise TypeError('В ответе API нет словаря')
-    if not isinstance(response[key], list):
-        raise TypeError(f'По ключу "{key}" не получен список')
-    if key not in response:
-        raise KeyError(f'Ключа "{key}" в словаре нет')
-    return response[key]
+    if not isinstance(response['homeworks'], list):
+        raise TypeError('По ключу "homeworks" не получен список')
+    if 'homeworks' not in response:
+        raise KeyError('Ключа "homeworks" в словаре нет')
+    return response['homeworks']
 
 
 def parse_status(homework):
