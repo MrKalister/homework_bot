@@ -1,2 +1,3 @@
 # homework_bot
-python telegram bot
+The telegram bot checks the status of my homework.
+The bot uses API Yandex.practicum
