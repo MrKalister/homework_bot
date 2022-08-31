@@ -5,5 +5,6 @@ The bot polls [a endpoint](https://practicum.yandex.ru/api/user_api/homework_sta
 * approved,
 * reviewing,
 * rejected.
+
 The bot also cheks errors when polling the server and logging.
 The bot send message if change status a last homework or detects an error.
